@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Chatbot</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box"></div>
+        <form id="chat-form">
+            <input type="text" name="query" id="query" placeholder="Nhập câu hỏi..." required />
+            <input type="hidden" id="history" name="history" />
+            <button type="submit">Gửi</button>
+        </form>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById("chat-box");
+        const form = document.getElementById("chat-form");
+        const queryInput = document.getElementById("query");
+        const historyInput = document.getElementById("history");
+
+        let messages = [];
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const query = queryInput.value;
+
+            // Hiển thị câu hỏi của người dùng
+            chatBox.innerHTML += `<div class="user"><strong>Bạn:</strong> ${query}</div>`;
+
+            // Thêm loading bot
+            const loadingId = `loading-${Date.now()}`;
+            chatBox.innerHTML += `
+                <div class="ai" id="${loadingId}">
+                    <strong>AI:</strong> <span class="loading-spinner">💬 Đang trả lời...</span>
+                </div>
+            `;
+
+            messages.push({ role: "user", content: query });
+            historyInput.value = JSON.stringify(messages);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            queryInput.value = "";
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        query: query,
+                        history: historyInput.value,
+                    }),
+                });
+
+                const data = await response.json();
+                messages = data.history;
+
+                // Cập nhật nội dung vào vị trí loading
+                const loadingDiv = document.getElementById(loadingId);
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = `<strong>AI:</strong> ${data.answer}`;
+                }
+            } catch (err) {
+                const loadingDiv = document.getElementById(loadingId);
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = `<strong>AI:</strong> ❌ Lỗi: ${err.message}`;
+                }
+            }
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
+</body>
+</html>

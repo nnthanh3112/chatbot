@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chatbot</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box"></div>
+        <form id="chat-form">
+            <input type="text" name="query" id="query" placeholder="Nhập câu hỏi..." required />
+            <input type="hidden" id="history" name="history" />
+            <button type="submit">Gửi</button>
+        </form>
+    </div>
+    <script>
+        const chatBox = document.getElementById("chat-box");
+        const form = document.getElementById("chat-form");
+        const queryInput = document.getElementById("query");
+        const historyInput = document.getElementById("history");
+
+        let messages = [];
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const query = queryInput.value;
+            chatBox.innerHTML += `<div class="user"><strong>Bạn:</strong> ${query}</div>`;
+            messages.push({ role: "user", content: query });
+            historyInput.value = JSON.stringify(messages);
+
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({
+                    query: query,
+                    history: historyInput.value,
+                }),
+            });
+            const data = await response.json();
+            messages = data.history;
+            chatBox.innerHTML += `<div class="ai"><strong>AI:</strong><div>${data.answer}</div></div>`;
+            queryInput.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
+</body>
+</html>
