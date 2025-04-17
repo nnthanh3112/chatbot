@@ -6,3 +6,6 @@ azure-core
 markdown2
 jinja2
 python-multipart
+python-dotenv
+sqlalchemy
+psycopg2-binary

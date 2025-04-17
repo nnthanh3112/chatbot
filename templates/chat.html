@@ -6,13 +6,28 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-box" id="chat-box"></div>
-        <form id="chat-form">
-            <input type="text" name="query" id="query" placeholder="Nhập câu hỏi..." required />
-            <input type="hidden" id="history" name="history" />
-            <button type="submit">Gửi</button>
-        </form>
+    <header class="header">
+        <img src="/static/logo-vingroup.jpg" alt="Vingroup Logo" class="logo">
+    </header>
+
+    <div class="container">
+        <!-- Phần lịch sử chat bên trái -->
+        <div class="history-container">
+            <button onclick="toggleHistory()">Xem lịch sử chat</button>
+            <div class="history-box" id="chat-history" style="display: none;">
+                <!-- Lịch sử chat sẽ hiển thị tại đây -->
+            </div>
+        </div>
+
+        <!-- Phần chat chính bên phải -->
+        <div class="chat-container">
+            <div class="chat-box" id="chat-box"></div>
+            <form id="chat-form">
+                <input type="text" name="query" id="query" placeholder="Nhập câu hỏi..." required />
+                <input type="hidden" id="history" name="history" />
+                <button type="submit">Gửi</button>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -20,6 +35,7 @@
         const form = document.getElementById("chat-form");
         const queryInput = document.getElementById("query");
         const historyInput = document.getElementById("history");
+        const chatHistory = document.getElementById("chat-history");
 
         let messages = [];
 
@@ -27,15 +43,13 @@
             e.preventDefault();
             const query = queryInput.value;
 
-            // Hiển thị câu hỏi của người dùng
-            chatBox.innerHTML += `<div class="user"><strong>Bạn:</strong> ${query}</div>`;
+            chatBox.innerHTML += `<div class="user"><strong>Bạn:</strong> ${query}</div><br/>`;
 
-            // Thêm loading bot
             const loadingId = `loading-${Date.now()}`;
             chatBox.innerHTML += `
                 <div class="ai" id="${loadingId}">
                     <strong>AI:</strong> <span class="loading-spinner">💬 Đang trả lời...</span>
-                </div>
+                </div><br/>
             `;
 
             messages.push({ role: "user", content: query });
@@ -56,7 +70,6 @@
                 const data = await response.json();
                 messages = data.history;
 
-                // Cập nhật nội dung vào vị trí loading
                 const loadingDiv = document.getElementById(loadingId);
                 if (loadingDiv) {
                     loadingDiv.innerHTML = `<strong>AI:</strong> ${data.answer}`;
@@ -70,6 +83,27 @@
 
             chatBox.scrollTop = chatBox.scrollHeight;
         });
+
+        async function toggleHistory() {
+            const currentDisplay = chatHistory.style.display;
+            chatHistory.style.display = currentDisplay === "none" ? "block" : "none";
+
+            if (currentDisplay === "none") {
+                const response = await fetch("/history");
+                const data = await response.json();
+                chatHistory.innerHTML = "";
+
+                data.history.forEach(entry => {
+                    const assistantMsg = entry.assistant_message.replace(/\n/g, "<br/>");
+                    chatHistory.innerHTML += `
+                        <div class="history-entry">
+                            <strong>User:</strong> ${entry.user_message}<br>
+                            <strong>Assistant:</strong> ${assistantMsg}<br><br>
+                        </div>
+                    `;
+                });
+            }
+        }
     </script>
 </body>
 </html>

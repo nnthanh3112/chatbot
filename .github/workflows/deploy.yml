@@ -1,0 +1,45 @@
+name: Build and Deploy Chatbot to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: vinchatbot
+  ACR_LOGIN_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Login to Azure Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.AZURE_ACR_USERNAME }}
+        password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+    - name: Build Docker Image
+      run: docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:latest .
+
+    - name: Push Docker Image to ACR
+      run: docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v4
+
+    - name: Write kubeconfig
+      run: |
+        echo "${{ secrets.AZURE_AKS_CREDENTIALS }}" | base64 -d > kubeconfig
+        export KUBECONFIG=$(pwd)/kubeconfig
+        kubectl get nodes
+
+    - name: Deploy to AKS
+      run: |
+        export KUBECONFIG=$(pwd)/kubeconfig
+        kubectl apply -f deployment.yaml
